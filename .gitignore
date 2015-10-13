@@ -1,3 +1,6 @@
+#MS-Word temp files
+~$*.docx
+
 #IPYNB files
 .kernel*
 .ipynb_checkpoints/
