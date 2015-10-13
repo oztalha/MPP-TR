@@ -21,13 +21,31 @@ for k,vl in outlets.items():
             m[k][v] = set(json.load(f))
             
 #get meetmin similarities
-s13 = getPairwiseSimilarities(m['2013-12'])
-s15 = getPairwiseSimilarities(m['2015-07'])
+s13 = getPairwiseSimilarities(m['2013-12'],metric='meet-min')
+s15 = getPairwiseSimilarities(m['2015-07'],metric='meet-min')
+
+fig, ax = plt.subplots(figsize=(15,12))
+ax = sns.heatmap(s15)
+ax.set_title('Audience MeetMin Similarities as 2015-07')
+fig.savefig('outputs/charts/sim-2015-meetmin.png',bbox_inches='tight')
 
 fig, ax = plt.subplots(figsize=(15,12))
 ax = sns.heatmap(s15-s13)
 ax.set_title('Change in Audience Similarities from 2013-12 to 2015-07')
-fig.savefig('outputs/charts/sim-diff.png',bbox_inches='tight')
+fig.savefig('outputs/charts/sim-diff-meetmin.png',bbox_inches='tight')
+
+
+# needs to be normalized by the number of followers who follows a second one?
+ds13 = getPairwiseSimilarities(m['2013-12'])
+ds15 = getPairwiseSimilarities(m['2015-07'])
+fig, ax = plt.subplots(figsize=(15,12))
+ax = sns.heatmap(ds15-ds13)
+ax.set_xlabel('B')
+ax.set_ylabel('A')
+ax.set_title('The Change in Audience Similarities from 2013-12 to 2015-07\n'\
+    '(Audience Similarity: What percent of A is also subscribed to B)\n'\
+    '(For SHaber,imc and ozgurgundem only 2015-07 data available)')
+fig.savefig('outputs/charts/sim-diff-directional.png',bbox_inches='tight')
 
 
 
@@ -36,24 +54,31 @@ fig.savefig('outputs/charts/sim-diff.png',bbox_inches='tight')
 
 
 
-def getPairwiseSimilarities(s):
+def getPairwiseSimilarities(s,metric='directional'):
     """
     Expects a media subscribers dictionary s where each key is a media name
     and each value is a set of subscriber ids for that organizations.
+    
+    metric can be 'directional' or 'meet-min'
     
     Returns meet/min similarity matrix as a dataframe
     """
     
     medsim = defaultdict(dict)
-    media = list(s.keys())
+    media = sorted(list(s.keys()))
     pairs = combinations(s.keys(),2)
     
     for m in media:
         medsim[m][m] = 1
     for m1,m2 in pairs:
-        sim = 1.0*len(s[m1].intersection(s[m2]))/min(len(s[m1]),len(s[m2]))
-        #medsim.update({(m1,m2):sim})
-        medsim[m1][m2] = sim
-        medsim[m2][m1] = sim
-    df = pd.DataFrame(data=medsim,index=s.keys(),columns=s.keys())
+        if metric == 'meet-min':
+            sim = 1.0*len(s[m1].intersection(s[m2]))/min(len(s[m1]),len(s[m2]))
+            medsim[m1][m2] = sim
+            medsim[m2][m1] = sim
+        if metric == 'directional':
+            intersection = 1.0*len(s[m1].intersection(s[m2]))
+            medsim[m1][m2] = intersection/len(s[m1])
+            medsim[m2][m1] = intersection/len(s[m2])
+    
+    df = pd.DataFrame(data=medsim,index=media,columns=media)
     return df
