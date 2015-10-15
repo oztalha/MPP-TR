@@ -35,6 +35,6 @@ twitter_api = oauth_login(keys.user['manqili'])
 parties = ['Akparti']
 saveFollowers(parties,twitter_api,'data/parties')
 
-media = ['t24comtr','SHaberTV']
+media = ['anadoluajansi']
 twitter_api = oauth_login(keys.user['manqili'])
 saveFollowers(media,twitter_api,'data/outlets/2015-07/')
