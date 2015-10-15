@@ -6,7 +6,7 @@ plt.rcParams['savefig.dpi'] = 150
 from itertools import combinations
 from collections import defaultdict
 import seaborn as sns
-
+import networkx as nx
 
 #read outlets data
 with open('data/outlets/outlets_list.json') as f:
@@ -20,24 +20,9 @@ for k,vl in outlets.items():
         with open(fname) as f:
             m[k][v] = set(json.load(f))
             
-#get meetmin similarities
-s13 = getPairwiseSimilarities(m['2013-12'],metric='meet-min')
-s15 = getPairwiseSimilarities(m['2015-07'],metric='meet-min')
-
-fig, ax = plt.subplots(figsize=(15,12))
-ax = sns.heatmap(s15)
-ax.set_title('Audience MeetMin Similarities as 2015-07')
-fig.savefig('outputs/charts/sim-2015-meetmin.png',bbox_inches='tight')
-
-fig, ax = plt.subplots(figsize=(15,12))
-ax = sns.heatmap(s15-s13)
-ax.set_title('Change in Audience Similarities from 2013-12 to 2015-07')
-fig.savefig('outputs/charts/sim-diff-meetmin.png',bbox_inches='tight')
-
-
 # needs to be normalized by the number of followers who follows a second one?
-ds13 = getPairwiseSimilarities(m['2013-12'])
-ds15 = getPairwiseSimilarities(m['2015-07'])
+ds13 = getAllSimilarities(m['2013-12'])
+ds15 = getAllSimilarities(m['2015-07'])
 fig, ax = plt.subplots(figsize=(15,12))
 ax = sns.heatmap(ds15-ds13)
 ax.set_xlabel('B')
@@ -49,12 +34,14 @@ fig.savefig('outputs/charts/sim-diff-directional.png',bbox_inches='tight')
 
 
 
+df = ds15
+edges = df.stack(level=0).reset_index()
+edges.columns = ['source','target','weight']
+edges.to_csv('data/outputs/networks/edges15.csv',index=False)
+G = nx.from_numpy_matrix(df.as_matrix(),create_using=nx.DiGraph())
 
 
-
-
-
-def getPairwiseSimilarities(s,metric='directional'):
+def getAllSimilarities(s,metric='directional'):
     """
     Expects a media subscribers dictionary s where each key is a media name
     and each value is a set of subscriber ids for that organizations.
@@ -82,3 +69,20 @@ def getPairwiseSimilarities(s,metric='directional'):
     
     df = pd.DataFrame(data=medsim,index=media,columns=media)
     return df
+
+
+
+
+##get meetmin similarities
+#s13 = getAllSimilarities(m['2013-12'],metric='meet-min')
+#s15 = getAllSimilarities(m['2015-07'],metric='meet-min')
+#
+#fig, ax = plt.subplots(figsize=(15,12))
+#ax = sns.heatmap(s15)
+#ax.set_title('Audience MeetMin Similarities as 2015-07')
+#fig.savefig('outputs/charts/sim-2015-meetmin.png',bbox_inches='tight')
+#
+#fig, ax = plt.subplots(figsize=(15,12))
+#ax = sns.heatmap(s15-s13)
+#ax.set_title('Change in Audience Similarities from 2013-12 to 2015-07')
+#fig.savefig('outputs/charts/sim-diff-meetmin.png',bbox_inches='tight')
