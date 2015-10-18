@@ -48,10 +48,13 @@ def read_parties():
 
 
 m = read_outlets()
-ms = m['2015-07']
+ms15 = m['2015-07']
+ms13 = m['2013-12']
 p = read_parties()
-ps = dict(p['2015-07'])
-del ps['MFG']
+ps15 = dict(p['2015-07'])
+ps13 = dict(p['2014-01'])
+del ps15['MFG']
+del ps13['MFG']
 
 
 def getPoliticalness(ps,ms):
@@ -61,30 +64,30 @@ def getPoliticalness(ps,ms):
         df[k] = len(v & united)/len(v)
     return df
 
-df = getPoliticalness(ps,ms)
+df13 = getPoliticalness(ps13,ms13)
+df15 = getPoliticalness(ps15,ms15)
 
-c = Counter()
+c13 = Counter()
+c15 = Counter()
 
-for k,v in ps.items():
-    c.update(v)
+for k,v in ps13.items():
+    c13.update(v)
 
-united = set.union(*ps.values())
+united13 = set.union(*ps13.values())
 def getMediaOverParties(m,c,ps,ms,united):
     mp = {}
     for p in ps.keys():
         mp[p] = sum([1.0/c[v] for v in (ms[m] & ps[p])])/len(ms[m] & united)
     return pd.DataFrame(mp,columns=['AKP','CHP','MHP','HDP'],index=[m])
     
-    
-    
-mps = pd.DataFrame(columns=['AKP','CHP','MHP','HDP'])
-for m in ms.keys():
-    mps = mps.append(getMediaOverParties(m,c,ps,ms,united))
+   
+mps13 = pd.DataFrame(columns=['AKP','CHP','MHP','HDP'])
+for m in ms13.keys():
+    mps13 = mps13.append(getMediaOverParties(m,c13,ps13,ms13,united13))
+mps13.index = mps13.index.map(str.lower)
+mps13 = mps13.sort_index()
 
 colors = ['orange','red','green','purple']
-mps.index = mps.index.map(str.lower)
-mps = mps.sort_index()
-
 mps.transpose().plot(kind='pie',subplots=True,layout=(6,7),legend=False,
               labels=None,figsize=(10,8.5),colors=colors,autopct='%.2f');
 
@@ -109,6 +112,38 @@ f.savefig('outputs/figures/leanings.png', dpi=100,bbox_inches='tight')
 enps = mps.apply(lambda x: 1/sum((v/sum(x))**2 for v in x),axis=1)
 enps.sort()
 enps.plot(kind='barh',title='Effective Number of Parties',figsize=(8,8))
+
+
+
+
+
+s2 = pd.read_csv('data/surveys/2002.csv',index_col=[0])
+s7 = pd.read_csv('data/surveys/2007.csv',index_col=[0])
+
+
+
+
+#QEDs RD:
+z = [.8, .83, .45, .18]
+c = [.73, .8, .60, .59]
+y = [2002,2007,2013,2015]
+
+ax = plt.gca()
+ax.set_xticklabels(['2013-12','','','','2015-07'])
+plt.xlabel('Time')
+plt.ylabel('Percentage of audience leaning towards AKP')
+#plt.plot(y[:2],z[:2],'b-', label='Treatment pre-cutoff')
+plt.plot(y[2:],z[2:],'b-', label='Treatment (Zaman) post-cutoff')
+plt.plot(y[2:],[z[2],c[3]+(z[2]-c[2])],'b:', label='Treatment (Zaman) counterfactual')
+plt.plot([2013,2013],[0.15, 0.85],'k--')
+#plt.plot(y[:2],c[:2],'r-', label='Control pre-cutoff')
+plt.plot(y[2:],c[2:],'r-', label='Control (Conservatives) post-cutoff')
+plt.legend()
+
+plt.savefig('outputs/figures/DD.png', dpi=100,bbox_inches='tight')
+
+
+
 
 
 def getAllSimilarities(s,metric='directional'):
